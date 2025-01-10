@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
 const path = require("path");
+const session = require("express-session");
 const crypto = require("crypto");
 
 
@@ -18,7 +19,7 @@ async function startServer() {
     serveStaticFiles();
     //serverMiddleware();
 
-    //serveHtml();
+    serveHtml();
     //serveServices();
 
     server.use((req, res) => {
@@ -27,7 +28,7 @@ async function startServer() {
     });
 
     server.listen(port, () => {
-      console.log(`Server pokrenut na portu: ${port}`);
+      console.log(`Server pokrenut na: http://localhost:${port}`);
     });
 }
 
@@ -61,3 +62,14 @@ function serveStaticFiles() {
       express.static(path.join(__dirname, "../public/images"))
     );
 }
+
+function serveHtml() {
+    server.get("/", (req, res) => {
+        res.send("Nothing to see here");
+    });
+
+    server.get("/login", (req, res) => {
+        res.sendFile(path.join(__dirname, "../public/html/login.html"));
+    });
+}
+

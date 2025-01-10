@@ -5,7 +5,6 @@ const path = require("path");
 const session = require("express-session");
 const crypto = require("crypto");
 
-
 const server = express();
 const app = http.createServer(server);
 const wss = new WebSocket.Server({ server: app });
@@ -14,7 +13,6 @@ const port = process.env.PORT || 12000;
 startServer();
 
 async function startServer() {
-    //await initializeDatabase();
     configureServer();
     serveStaticFiles();
     //serverMiddleware();

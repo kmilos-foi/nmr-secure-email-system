@@ -71,5 +71,9 @@ function serveHtml() {
     server.get("/login", (req, res) => {
         res.sendFile(path.join(__dirname, "../public/html/login.html"));
     });
+
+    server.get("/registration", (req, res) => {
+        res.sendFile(path.join(__dirname, "../public/html/registration.html"));
+    });
 }
 

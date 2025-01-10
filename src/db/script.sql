@@ -9,6 +9,9 @@ CREATE TABLE users (
     password TEXT NOT NULL
 );
 
+INSERT INTO users(first_name, last_name, username, password) VALUES ('Matija', 'Matić', 'user', 'user');
+INSERT INTO users(first_name, last_name, username, password) VALUES ('Toni', 'Kupaoni', 'user2', 'user2');
+
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sender_id INT NOT NULL,

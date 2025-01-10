@@ -5,6 +5,8 @@ const path = require("path");
 const session = require("express-session");
 const crypto = require("crypto");
 
+const authenticationService = require("./services/authenticationService.js");
+
 const server = express();
 const app = http.createServer(server);
 const wss = new WebSocket.Server({ server: app });
@@ -15,10 +17,9 @@ startServer();
 async function startServer() {
     configureServer();
     serveStaticFiles();
-    //serverMiddleware();
 
     serveHtml();
-    //serveServices();
+    serveServices();
 
     server.use((req, res) => {
       res.status(404);
@@ -69,9 +70,9 @@ function serveHtml() {
     server.get("/login", (req, res) => {
         res.sendFile(path.join(__dirname, "../public/html/login.html"));
     });
+}
 
-    server.get("/registration", (req, res) => {
-        res.sendFile(path.join(__dirname, "../public/html/registration.html"));
-    });
+function serveServices() {
+    server.post("/login", authenticationService.login);
 }
 

@@ -12,6 +12,15 @@ class UserDao {
     if (data.length == 1) return data[0];
     else return null;
   };
+
+  getUserIdByUsername = async function (username) {
+    this.db.connect();
+    let sql = "SELECT * FROM users WHERE username=?;";
+    let data = await this.db.executeQuery(sql, [username]);
+    this.db.disconnect();
+    if (data.length == 1) return data[0].id;
+    else return null;
+  };
 }
 
 module.exports = UserDao;

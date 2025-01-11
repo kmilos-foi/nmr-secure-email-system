@@ -75,3 +75,8 @@ tr:hover {
 #lblError {
     visibility: hidden;
 }
+
+thead {
+    background-color: rgba(0, 123, 255, 0.8); /* Plava boja s 80% prozirnošću */
+    color: white; /* Bijeli tekst za kontrast */
+}

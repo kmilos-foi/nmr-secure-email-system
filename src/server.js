@@ -88,6 +88,7 @@ function serveHtml() {
 function serveServices() {
     server.post("/login", authenticationService.login);
     server.get("/logout", authenticationService.logout);
+    server.get("/messages", messageService.getMessages);
 }
 
 function handleWebSocketConnections() {

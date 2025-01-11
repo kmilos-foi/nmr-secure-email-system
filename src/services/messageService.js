@@ -21,3 +21,12 @@ exports.postMessage = async function (data, userId) {
         return { success: false, message: "Something went wrong. Try again!" };
     }
 };
+
+exports.getMessages = async function (req, res) {
+    res.type("application/json");
+    let messageDao = new MessageDAO();
+    let userId = req.session.userId;
+    let messages = await messageDao.getUserMessagesByUserId(userId);
+    res.status(200);
+    res.json(messages);
+};

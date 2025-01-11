@@ -15,7 +15,8 @@ exports.postMessage = async function (data, userId) {
     }
 
     try {
-        let message = await messageDao.insertMessage(userId, receiverId, data.subject, data.content);
+        let insertedMessage = await messageDao.insertMessage(userId, receiverId, data.subject, data.content);
+        let message = await messageDao.getMessageByMessageId(insertedMessage.id);
         return { success: true, message: message };
     } catch (e) {
         return { success: false, message: "Something went wrong. Try again!" };

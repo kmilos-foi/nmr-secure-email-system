@@ -14,6 +14,7 @@ const server = express();
 const app = http.createServer(server);
 
 const wss = new WebSocket.Server({ noServer: true });
+const clients = new Map();
 
 const sessionMiddleware = session({
     secret: crypto.randomBytes(32).toString("base64"),
@@ -93,6 +94,9 @@ function serveServices() {
 
 function handleWebSocketConnections() {
     wss.on("connection", (ws, req) => {
+        const userId = req.session.userId;
+        clients.set(userId, ws);
+        console.log(clients)
         ws.on("message", async (message) => {
             const data = JSON.parse(message);
             let userId = req.session.userId;
@@ -101,12 +105,21 @@ function handleWebSocketConnections() {
                 ws.send(JSON.stringify({ status: "error", message: "Unauthorized" }));
                 return;
             }
+
             const result = await messageService.postMessage(data, userId);
             ws.send(JSON.stringify({
                 type: "message_ack",
                 success: result.success,
                 message: result.message,
             }));
+            if (result.message.receiver_id == req.session.userId) return;
+            const receiverWs = clients.get(result.message.receiver_id);
+            if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+                receiverWs.send(JSON.stringify({
+                    type: "new_message",
+                    message: result.message,
+                }));
+            }
         });
 
         ws.on("close", () => {

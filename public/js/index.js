@@ -88,8 +88,12 @@ function setupWebSocket() {
                 lblError.style.display = "none";
                 toggleCompose();
                 resetMessageForm();
-                console.log("Sent message:", serverResponse.message);
+                addMessageToTable(serverResponse.message);
             }
+        } else if (serverResponse.type === "new_message") {
+            console.log("server response", serverResponse)
+            console.log(serverResponse.message)
+            addMessageToTable(serverResponse.message);
         }
     });
 
@@ -135,3 +139,30 @@ async function getMessages() {
     return data;
 }
 
+function addMessageToTable(message) {
+    const tbody = document.getElementById("tbody");
+    const row = document.createElement("tr");
+
+    const senderCell = document.createElement("td");
+    senderCell.textContent = message.sender_username;
+
+    const receiverCell = document.createElement("td");
+    receiverCell.textContent = message.receiver_username;
+
+    const subjectCell = document.createElement("td");
+    subjectCell.textContent = message.subject;
+
+    const timestampCell = document.createElement("td");
+    timestampCell.textContent = message.sent_at;
+
+    row.appendChild(senderCell);
+    row.appendChild(receiverCell);
+    row.appendChild(subjectCell);
+    row.appendChild(timestampCell);
+
+    if (tbody.firstChild) {
+        tbody.insertBefore(row, tbody.firstChild);
+    } else {
+        tbody.appendChild(row);
+    }
+}

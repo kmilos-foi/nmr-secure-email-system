@@ -1,4 +1,5 @@
 let socket;
+let lblError = document.getElementById("lblError");
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('compose-icon').addEventListener('click', toggleCompose);
@@ -38,9 +39,7 @@ function sendMessage() {
     const messageData = setMessageBody();
 
     if (socket.readyState === WebSocket.OPEN) {
-        console.log(messageData);
         socket.send(JSON.stringify(messageData));
-        handleSendSuccess();
     } else {
         alert("Something went wrong. Please try again.");
     }
@@ -60,7 +59,6 @@ function setMessageBody() {
 
 function handleSendSuccess() {
     resetMessageForm();
-    toggleCompose();
 }
 
 function handleSendFailure() {
@@ -79,14 +77,20 @@ function setupWebSocket() {
     });
 
     socket.addEventListener("message", (event) => {
-        console.log("Message received from server:", event.data);
+        const serverResponse = JSON.parse(event.data);
+        if (!serverResponse.success) {
+            lblError.textContent = serverResponse.message || "An error occurred.";
+            lblError.style.visibility = "visible";
+        } else {
+            lblError.style.display = "none";
+            toggleCompose();
+            resetMessageForm();
+        }
     });
 
     socket.addEventListener("error", (error) => {
-        console.error("WebSocket error:", error);
     });
 
     socket.addEventListener("close", () => {
-        console.log("WebSocket connection closed.");
     });
 }

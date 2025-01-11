@@ -1,5 +1,7 @@
 let txtUsername = document.getElementById("txtUsername");
 let txtPassword = document.getElementById("txtPassword");
+txtPassword.value="user";
+txtUsername.value="user";
 let lblError = document.getElementById("lblError");
 
 window.addEventListener("DOMContentLoaded", () => {

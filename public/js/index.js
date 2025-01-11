@@ -80,13 +80,16 @@ function setupWebSocket() {
 
     socket.addEventListener("message", (event) => {
         const serverResponse = JSON.parse(event.data);
-        if (!serverResponse.success) {
-            lblError.textContent = serverResponse.message || "An error occurred.";
-            lblError.style.visibility = "visible";
-        } else {
-            lblError.style.display = "none";
-            toggleCompose();
-            resetMessageForm();
+        if (serverResponse.type === "message_ack") {
+            if (!serverResponse.success) {
+                lblError.textContent = serverResponse.message || "An error occurred.";
+                lblError.style.visibility = "visible";
+            } else {
+                lblError.style.display = "none";
+                toggleCompose();
+                resetMessageForm();
+                console.log("Sent message:", serverResponse.message);
+            }
         }
     });
 
@@ -129,7 +132,6 @@ async function setMessagesTable() {
 async function getMessages() {
     let response = await fetch("/messages");
     let data = await response.json();
-    console.log(data);
     return data;
 }
 

@@ -101,13 +101,15 @@ function handleWebSocketConnections() {
                 ws.send(JSON.stringify({ status: "error", message: "Unauthorized" }));
                 return;
             }
-
             const result = await messageService.postMessage(data, userId);
-            ws.send(JSON.stringify(result));
+            ws.send(JSON.stringify({
+                type: "message_ack",
+                success: result.success,
+                message: result.message,
+            }));
         });
 
         ws.on("close", () => {
-            console.log("WebSocket connection closed.");
         });
 
         ws.on("error", (error) => {

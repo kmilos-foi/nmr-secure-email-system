@@ -7,9 +7,10 @@ class MessageDao {
   
   insertMessage = async function (sender, receiver, subject, content) {
     this.db.connect();
-    let sql = "INSERT INTO messages(sender_id, receiver_id, subject, content) VALUES (?,?,?,?)";
-    await this.db.executeQuery(sql, [sender, receiver, subject, content]);
+    let sql = "INSERT INTO messages(sender_id, receiver_id, subject, content) VALUES (?,?,?,?) RETURNING *;";
+    let [message] = await this.db.executeQuery(sql, [sender, receiver, subject, content]);
     this.db.disconnect();
+    return message;
   };
 
   getUserMessagesByUserId = async function (userId) {
@@ -30,7 +31,8 @@ class MessageDao {
         JOIN
             users u2 ON m.receiver_id = u2.id
         WHERE
-            m.sender_id = ? OR m.receiver_id = ?;
+            m.sender_id = ? OR m.receiver_id = ?
+        ORDER BY m.sent_at DESC;
     `;
     let data = await this.db.executeQuery(sql, [userId, userId]);
   

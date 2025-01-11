@@ -77,6 +77,6 @@ tr:hover {
 }
 
 thead {
-    background-color: rgba(0, 123, 255, 0.8); /* Plava boja s 80% prozirnošću */
-    color: white; /* Bijeli tekst za kontrast */
+    background-color: rgba(108, 179, 255, 0.8);
+    color: white;
 }

@@ -6,6 +6,7 @@ const session = require("express-session");
 const crypto = require("crypto");
 
 const authenticationService = require("./services/authenticationService.js");
+const messageService = require("./services/messageService.js");
 
 const port = process.env.PORT || 12000;
 
@@ -13,6 +14,18 @@ const server = express();
 const app = http.createServer(server);
 
 const wss = new WebSocket.Server({ noServer: true });
+
+const sessionMiddleware = session({
+    secret: crypto.randomBytes(32).toString("base64"),
+    saveUninitialized: true,
+    resave: false,
+    cookie: {
+        maxAge: 1000 * 60 * 60,
+        httpOnly: true,
+        sameSite: "strict",
+        secure: false,
+    },
+});
 
 startServer();
 
@@ -28,8 +41,16 @@ async function startServer() {
             socket.destroy();
             return;
         }
-        wss.handleUpgrade(req, socket, head, (ws) => {
-            wss.emit("connection", ws, req);
+
+        sessionMiddleware(req, {}, () => {
+            if (!req.session) {
+                socket.destroy();
+                return;
+            }
+
+            wss.handleUpgrade(req, socket, head, (ws) => {
+                wss.emit("connection", ws, req);
+            });
         });
     });
 
@@ -45,23 +66,7 @@ async function startServer() {
 function configureServer() {
     server.use(express.urlencoded({ extended: true }));
     server.use(express.json());
-    configureSession();
-}
-
-function configureSession() {
-    const sessionSecret = crypto.randomBytes(32).toString("base64");
-    server.use(
-        session({
-            secret: sessionSecret,
-            saveUninitialized: true,
-            cookie: {
-                maxAge: 1000 * 60 * 60,
-                httpOnly: true,
-                sameSite: "strict",
-            },
-            resave: false,
-        })
-    );
+    server.use(sessionMiddleware);
 }
 
 function serveStaticFiles() {
@@ -87,11 +92,17 @@ function serveServices() {
 
 function handleWebSocketConnections() {
     wss.on("connection", (ws, req) => {
-        console.log("New WebSocket connection established.");
+        ws.on("message", async (message) => {
+            const data = JSON.parse(message);
+            let userId = req.session.userId;
+            userId=1;
+            if (!userId) {
+                ws.send(JSON.stringify({ status: "error", message: "Unauthorized" }));
+                return;
+            }
 
-        ws.on("message", (message) => {
-            console.log("Received message from client:", message);
-            ws.send(JSON.stringify({ status: "Message received", data: message }));
+            const result = await messageService.postMessage(data, userId);
+            ws.send(JSON.stringify(result));
         });
 
         ws.on("close", () => {

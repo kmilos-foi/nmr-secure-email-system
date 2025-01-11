@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setSendMessageButton();
     socket = new WebSocket('ws://localhost:12000');
-    console.log(socket)
     setupWebSocket();
 });
 
@@ -39,6 +38,7 @@ function sendMessage() {
     const messageData = setMessageBody();
 
     if (socket.readyState === WebSocket.OPEN) {
+        console.log(messageData);
         socket.send(JSON.stringify(messageData));
         handleSendSuccess();
     } else {
@@ -47,19 +47,18 @@ function sendMessage() {
 }
 
 function setMessageBody() {
-    const recipient = document.getElementById("txtReciever").value.trim();
+    const receiver_username = document.getElementById("txtReciever").value.trim();
     const subject = document.getElementById("txtSubject").value.trim();
     const message = document.getElementById("message-content").value.trim();
 
     return {
-        recipient: recipient,
+        receiver_username: receiver_username,
         subject: subject,
-        message: message,
+        content: message,
     };
 }
 
 function handleSendSuccess() {
-    alert("Message sent successfully!");
     resetMessageForm();
     toggleCompose();
 }

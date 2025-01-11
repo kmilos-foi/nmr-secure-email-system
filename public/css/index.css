@@ -40,7 +40,7 @@ tr:hover {
     bottom: 20px;
     right: 20px;
     width: 400px;
-    height: 400px;
+    height: fit-content;
     background-color: #f8f9fa;
     border: 1px solid #ccc;
     border-radius: 8px;

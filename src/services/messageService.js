@@ -32,6 +32,17 @@ exports.getMessages = async function (req, res) {
     let messageDao = new MessageDAO();
     let userId = req.session.userId;
     let messages = await messageDao.getUserMessagesByUserId(userId);
+    const decryptedMessages = messages.map((message) => {
+        const decryptedSubject = aesEncryption.decrypt(message.subject, message.iv);
+        const decryptedContent = aesEncryption.decrypt(message.content, message.iv);
+
+        const { iv, ...restOfMessage } = message;
+        return {
+            ...restOfMessage,
+            subject: decryptedSubject,
+            content: decryptedContent,
+        };
+    });
     res.status(200);
-    res.json(messages);
+    res.json(decryptedMessages);
 };

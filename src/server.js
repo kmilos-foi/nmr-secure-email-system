@@ -64,7 +64,7 @@ function serveStaticFiles() {
 
 function serveHtml() {
     server.get("/", (req, res) => {
-        res.send("Nothing to see here");
+        res.sendFile(path.join(__dirname, "../public/html/index.html"));
     });
 
     server.get("/login", (req, res) => {
@@ -74,5 +74,6 @@ function serveHtml() {
 
 function serveServices() {
     server.post("/login", authenticationService.login);
+    server.get("/logout", authenticationService.logout);
 }
 

@@ -30,3 +30,13 @@ function return200(res) {
     res.status(200);
     res.send(JSON.stringify({ error: "Login successful" }));
 }
+
+exports.logout = async function (req, res) {
+    if (req.session.username) {
+      let message = `${req.ip} Logout ${req.session.username}`;
+      log(message);
+    }
+    req.session.destroy(() => {
+      res.redirect("/login");
+    });
+};

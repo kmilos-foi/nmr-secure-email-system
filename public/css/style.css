@@ -2,3 +2,25 @@ body {
 	margin: 0;
     background-color: aliceblue;
 }
+
+#navigation {
+	background-color: lightblue;
+}
+
+.navbar .nav-link:hover {
+    color: dodgerblue;
+}
+
+.navbar .nav-link.active {
+    color: black !important;
+	font-weight: bold;
+}
+
+#aLogout {
+    text-decoration: none;
+    color: black;
+}
+
+#aLogout:hover {
+    color: dodgerblue;
+}

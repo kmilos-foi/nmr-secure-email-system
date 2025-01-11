@@ -1,6 +1,23 @@
 const MessageDAO = require("../db/daos/messageDao.js");
 const UserDAO = require("../db/daos/userDao.js");
-const aesEncryption = require("../util/aes-encryption.js")
+const aesEncryption = require("../util/aes-encryption.js");
+
+function decryptMessage(message) {
+    if (!message.iv) {
+        throw new Error("Missing IV for decryption.");
+    }
+
+    const decryptedSubject = aesEncryption.decrypt(message.subject, Buffer.from(message.iv, "hex"));
+    const decryptedContent = aesEncryption.decrypt(message.content, Buffer.from(message.iv, "hex"));
+
+    const { iv, ...restOfMessage } = message;
+
+    return {
+        ...restOfMessage,
+        subject: decryptedSubject,
+        content: decryptedContent,
+    };
+}
 
 exports.postMessage = async function (data, userId) {
     let messageDao = new MessageDAO();
@@ -14,35 +31,26 @@ exports.postMessage = async function (data, userId) {
     if (!receiverId) {
         return { success: false, message: "Receiver does not exist." };
     }
+    let iv = aesEncryption.generateIV();
+    let encryptedSubject = aesEncryption.encrypt(data.subject, iv);
+    let encryptedContent = aesEncryption.encrypt(data.content, iv);
 
-    try {
-        let iv = aesEncryption.generateIV();
-        let encryptedSubject = aesEncryption.encrypt(data.subject, iv)
-        let encryptedContent = aesEncryption.encrypt(data.content, iv)
-        let insertedMessage = await messageDao.insertMessage(userId, receiverId, encryptedSubject, encryptedContent, iv);
-        let message = await messageDao.getMessageByMessageId(insertedMessage.id);
-        return { success: true, message: message };
-    } catch (e) {
-        return { success: false, message: "Something went wrong. Try again!" };
-    }
+    let insertedMessage = await messageDao.insertMessage(userId, receiverId, encryptedSubject, encryptedContent, iv.toString("hex"));
+
+    let message = await messageDao.getMessageByMessageId(insertedMessage.id);
+    let decryptedMessage = decryptMessage(message);
+
+    return { success: true, message: decryptedMessage };
 };
 
 exports.getMessages = async function (req, res) {
     res.type("application/json");
     let messageDao = new MessageDAO();
     let userId = req.session.userId;
-    let messages = await messageDao.getUserMessagesByUserId(userId);
-    const decryptedMessages = messages.map((message) => {
-        const decryptedSubject = aesEncryption.decrypt(message.subject, message.iv);
-        const decryptedContent = aesEncryption.decrypt(message.content, message.iv);
 
-        const { iv, ...restOfMessage } = message;
-        return {
-            ...restOfMessage,
-            subject: decryptedSubject,
-            content: decryptedContent,
-        };
-    });
-    res.status(200);
-    res.json(decryptedMessages);
+    let messages = await messageDao.getUserMessagesByUserId(userId);
+
+    const decryptedMessages = messages.map((message) => decryptMessage(message));
+
+    res.status(200).json(decryptedMessages);
 };

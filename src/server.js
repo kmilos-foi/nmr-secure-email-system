@@ -100,7 +100,6 @@ function handleWebSocketConnections() {
         ws.on("message", async (message) => {
             const data = JSON.parse(message);
             let userId = req.session.userId;
-            userId=1;
             if (!userId) {
                 ws.send(JSON.stringify({ status: "error", message: "Unauthorized" }));
                 return;
@@ -112,7 +111,9 @@ function handleWebSocketConnections() {
                 success: result.success,
                 message: result.message,
             }));
+
             if (result.message.receiver_id == req.session.userId) return;
+
             const receiverWs = clients.get(result.message.receiver_id);
             if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
                 receiverWs.send(JSON.stringify({

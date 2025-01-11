@@ -54,7 +54,8 @@ class MessageDao {
             u2.username AS receiver_username,
             m.subject,
             m.content,
-            m.sent_at
+            m.sent_at,
+            m.iv
         FROM
             messages m
         JOIN

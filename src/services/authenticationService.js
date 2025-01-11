@@ -9,7 +9,7 @@ exports.login = async function (req, res) {
         return401(res, "Missing password or username");
         return;
     }
-    
+
     let existingUser = await userDao.getUserByUsernameAndPassword(userData.username, userData.password);
 
     if (!existingUser) {

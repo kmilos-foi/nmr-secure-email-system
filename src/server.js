@@ -4,6 +4,7 @@ const WebSocket = require("ws");
 const path = require("path");
 const session = require("express-session");
 const crypto = require("crypto");
+require("dotenv-safe").config();
 
 const authenticationService = require("./services/authenticationService.js");
 const messageService = require("./services/messageService.js");
@@ -96,7 +97,6 @@ function handleWebSocketConnections() {
     wss.on("connection", (ws, req) => {
         const userId = req.session.userId;
         clients.set(userId, ws);
-        console.log(clients)
         ws.on("message", async (message) => {
             const data = JSON.parse(message);
             let userId = req.session.userId;

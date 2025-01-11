@@ -1,5 +1,6 @@
 const MessageDAO = require("../db/daos/messageDao.js");
 const UserDAO = require("../db/daos/userDao.js");
+const aesEncryption = require("../util/aes-encryption.js")
 
 exports.postMessage = async function (data, userId) {
     let messageDao = new MessageDAO();
@@ -15,7 +16,10 @@ exports.postMessage = async function (data, userId) {
     }
 
     try {
-        let insertedMessage = await messageDao.insertMessage(userId, receiverId, data.subject, data.content);
+        let iv = aesEncryption.generateIV();
+        let encryptedSubject = aesEncryption.encrypt(data.subject, iv)
+        let encryptedContent = aesEncryption.encrypt(data.content, iv)
+        let insertedMessage = await messageDao.insertMessage(userId, receiverId, encryptedSubject, encryptedContent, iv);
         let message = await messageDao.getMessageByMessageId(insertedMessage.id);
         return { success: true, message: message };
     } catch (e) {

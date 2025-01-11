@@ -5,10 +5,10 @@ class MessageDao {
     this.db = new DatabaseHandler("./db/database.sqlite");
   }
   
-  insertMessage = async function (sender, receiver, subject, content) {
+  insertMessage = async function (sender, receiver, subject, content, iv) {
     this.db.connect();
-    let sql = "INSERT INTO messages(sender_id, receiver_id, subject, content) VALUES (?,?,?,?) RETURNING *;";
-    let [message] = await this.db.executeQuery(sql, [sender, receiver, subject, content]);
+    let sql = "INSERT INTO messages(sender_id, receiver_id, subject, content, iv) VALUES (?,?,?,?, ?) RETURNING *;";
+    let [message] = await this.db.executeQuery(sql, [sender, receiver, subject, content, iv]);
     this.db.disconnect();
     return message;
   };

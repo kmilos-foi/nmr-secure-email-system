@@ -16,6 +16,7 @@ exports.login = async function (req, res) {
         return401(res, "Login failed");
         return;
     } else {
+        req.session.userId = existingUser.id;
         return200(res);
         return;
     }

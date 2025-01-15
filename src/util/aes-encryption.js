@@ -1,27 +1,39 @@
 const crypto = require("crypto");
 
-exports.encrypt = function (data, iv) {
-    const aesKey = process.env.AES_KEY;
-    
-    const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(aesKey, "hex"), iv);
+exports.encrypt = function (aesKey, data, iv) {
+  const cipher = crypto.createCipheriv(
+    "aes-256-cbc",
+    Buffer.from(aesKey, "hex"),
+    iv
+  );
 
-    let encrypted = cipher.update(data, "utf8", "hex");
-    encrypted += cipher.final("hex");
+  let encrypted = cipher.update(data, "utf8", "hex");
+  encrypted += cipher.final("hex");
 
-    return encrypted
+  return encrypted;
 };
 
-exports.decrypt = function (encryptedData, iv) {
-    const aesKey = process.env.AES_KEY;
+exports.decrypt = function (aesKey, encryptedData, iv) {
+  const decipher = crypto.createDecipheriv(
+    "aes-256-cbc",
+    Buffer.from(aesKey, "hex"),
+    iv
+  );
 
-    const decipher = crypto.createDecipheriv("aes-256-cbc", Buffer.from(aesKey, "hex"), iv);
+  let decrypted = decipher.update(encryptedData, "hex", "utf8");
+  decrypted += decipher.final("utf8");
 
-    let decrypted = decipher.update(encryptedData, "hex", "utf8");
-    decrypted += decipher.final("utf8");
-
-    return decrypted;
+  return decrypted;
 };
 
 exports.generateIV = function () {
-    return crypto.randomBytes(16);
+  return crypto.randomBytes(16);
+};
+
+exports.generateAESKey = function (sharedSecret) {
+  const hmac = crypto.createHmac("sha256", sharedSecret);
+  hmac.update("aes-key");
+  const aesKeyBuffer = hmac.digest();
+
+  return new Uint8Array(aesKeyBuffer.slice(0, 32));
 };

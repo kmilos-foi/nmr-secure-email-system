@@ -83,6 +83,9 @@ function serveStaticFiles() {
 
 function serveHtml() {
   server.get("/", (req, res) => {
+    if (req.session.userId == undefined) {
+      res.redirect("/login");
+    }
     res.sendFile(path.join(__dirname, "../public/html/index.html"));
   });
 
@@ -108,40 +111,75 @@ function handleWebSocketConnections() {
         sendMessage(ws, "error", false, "unauthorized");
         return;
       }
-      //try {
-      if (messageType === "public_key") {
-        const ecdh = crypto.createECDH("prime256v1");
-        const serverPublicKey = ecdh.generateKeys("hex");
-        const clientPublicKeyBuffer = Buffer.from(messageData.key, "hex");
-        const sharedSecret = ecdh.computeSecret(clientPublicKeyBuffer);
-        const aesKey = aes.generateAESKey(sharedSecret);
+      try {
+        if (messageType === "public_key") {
+          const ecdh = crypto.createECDH("prime256v1");
+          const serverPublicKey = ecdh.generateKeys("hex");
+          const clientPublicKeyBuffer = Buffer.from(messageData.key, "hex");
+          const sharedSecret = ecdh.computeSecret(clientPublicKeyBuffer);
+          const aesKey = aes.generateAESKey(sharedSecret);
 
-        clients.set(userId, { ws, aesKey });
-        sendData(ws, "public_key", {
-          key: serverPublicKey,
-        });
-      } else if (messageType === "send_message") {
-        let iv = base64Decode(messageData.iv);
-        let content = JSON.parse(
-          aes.decrypt(clients.get(userId).aesKey, messageData.content, iv)
-        );
-        const result = await messageService.postMessage(content, userId);
-        if (result.type == "error") {
-          ws.send(
-            JSON.stringify({
-              type: result.type,
-              data: { message: result.message },
-            })
+          clients.set(userId, { ws, aesKey });
+          sendData(ws, "public_key", {
+            key: serverPublicKey,
+          });
+        } else if (messageType === "send_message") {
+          let iv = base64Decode(messageData.iv);
+          let content = JSON.parse(
+            aes.decrypt(clients.get(userId).aesKey, messageData.content, iv)
           );
-        } else {
+          const result = await messageService.postMessage(content, userId);
+          if (result.type == "error") {
+            ws.send(
+              JSON.stringify({
+                type: result.type,
+                data: { message: result.message },
+              })
+            );
+          } else {
+            let iv = aes.generateIV();
+            ws.send(
+              JSON.stringify({
+                type: result.type,
+                data: {
+                  message: aes.encrypt(
+                    clients.get(userId).aesKey,
+                    result.message,
+                    iv
+                  ),
+                  iv: iv.toString("base64"),
+                },
+              })
+            );
+          }
+          if (result.message.receiver_id == req.session.userId) return;
+          const receiverWs = clients.get(result.message.receiver_id).ws;
+          if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+            let iv = aes.generateIV();
+            receiverWs.send(
+              JSON.stringify({
+                type: "new_message",
+                data: {
+                  message: aes.encrypt(
+                    clients.get(result.message.receiver_id).aesKey,
+                    result.message,
+                    iv
+                  ),
+                  iv: iv.toString("base64"),
+                },
+              })
+            );
+          }
+        } else if (messageType === "fetch_messages") {
+          let messages = await messageService.getMessages(userId);
           let iv = aes.generateIV();
           ws.send(
             JSON.stringify({
-              type: result.type,
+              type: "all_messages",
               data: {
                 message: aes.encrypt(
                   clients.get(userId).aesKey,
-                  result.message,
+                  JSON.stringify(messages),
                   iv
                 ),
                 iv: iv.toString("base64"),
@@ -149,45 +187,10 @@ function handleWebSocketConnections() {
             })
           );
         }
-        if (result.message.receiver_id == req.session.userId) return;
-        const receiverWs = clients.get(result.message.receiver_id).ws;
-        if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
-          let iv = aes.generateIV();
-          receiverWs.send(
-            JSON.stringify({
-              type: "new_message",
-              data: {
-                message: aes.encrypt(
-                  clients.get(result.message.receiver_id).aesKey,
-                  result.message,
-                  iv
-                ),
-                iv: iv.toString("base64"),
-              },
-            })
-          );
-        }
-      } else if (messageType === "fetch_messages") {
-        let messages = await messageService.getMessages(userId);
-        let iv = aes.generateIV();
-        ws.send(
-          JSON.stringify({
-            type: "all_messages",
-            data: {
-              message: aes.encrypt(
-                clients.get(userId).aesKey,
-                JSON.stringify(messages),
-                iv
-              ),
-              iv: iv.toString("base64"),
-            },
-          })
-        );
-      }
-      /*} catch (ex) {
+      } catch (ex) {
         console.log(ex.message);
         sendMessage(ws, "error", "something went wrong");
-      }*/
+      }
     });
 
     ws.on("close", () => {});

@@ -1,18 +1,18 @@
 const MessageDAO = require("../db/daos/messageDao.js");
 const UserDAO = require("../db/daos/userDao.js");
-const aesEncryption = require("../util/aes-encryption.js");
+const encryption = require("../util/db-encryption.js");
 
 function decryptMessage(message) {
   if (!message.iv) {
     throw new Error("Missing IV for decryption.");
   }
 
-  const decryptedSubject = aesEncryption.decrypt(
+  const decryptedSubject = encryption.decrypt(
     process.env.AES_KEY,
     message.subject,
     Buffer.from(message.iv, "hex")
   );
-  const decryptedContent = aesEncryption.decrypt(
+  const decryptedContent = encryption.decrypt(
     process.env.AES_KEY,
     message.content,
     Buffer.from(message.iv, "hex")
@@ -42,13 +42,13 @@ exports.postMessage = async function (data, userId) {
   if (!receiverId) {
     return { type: "message_send_error", message: "Receiver does not exist." };
   }
-  let iv = aesEncryption.generateIV();
-  let encryptedSubject = aesEncryption.encrypt(
+  let iv = encryption.generateIV();
+  let encryptedSubject = encryption.encrypt(
     process.env.AES_KEY,
     data.subject,
     iv
   );
-  let encryptedContent = aesEncryption.encrypt(
+  let encryptedContent = encryption.encrypt(
     process.env.AES_KEY,
     data.content,
     iv

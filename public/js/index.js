@@ -15,11 +15,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupWebSocket();
 
   await setMessagesTable();
-  await generateClientKeyPair();
-  let rawKey = await crypto.subtle.exportKey("raw", clientKeyPair.publicKey);
-  let key = bytesToHex(new Uint8Array(rawKey));
-  console.log(key);
-  sendSocketMessage(key);
 });
 
 function toggleCompose() {
@@ -49,8 +44,18 @@ function isFormValid() {
 
 function sendMessage() {
   const messageData = {};
-  messageData.data = setMessageBody();
+  messageData.data = {};
+  let dataToEncrypt = JSON.stringify(setMessageBody());
+  messageData.type = "send_message";
 
+  const textBytes = aesjs.utils.utf8.toBytes(dataToEncrypt);
+  const iv = generateIV();
+  const paddedBytes = aesjs.padding.pkcs7.pad(textBytes);
+  const aesCbc = new aesjs.ModeOfOperation.cbc(aesKey, iv);
+  const encryptedBytes = aesCbc.encrypt(paddedBytes);
+  const encryptedHex = aesjs.utils.hex.fromBytes(encryptedBytes);
+  messageData.data.iv = arrayBufferToBase64(iv);
+  messageData.data.content = encryptedHex;
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(messageData));
   } else {
@@ -85,13 +90,15 @@ function resetMessageForm() {
 }
 
 function setupWebSocket() {
-  socket.addEventListener("open", () => {
-    console.log("WebSocket connection established.");
+  socket.addEventListener("open", async () => {
+    await generateClientKeyPair();
+    let rawKey = await crypto.subtle.exportKey("raw", clientKeyPair.publicKey);
+    let key = bytesToHex(new Uint8Array(rawKey));
+    sendSocketMessage(key);
   });
 
   socket.addEventListener("message", async (event) => {
     const serverResponse = JSON.parse(event.data);
-    console.log(serverResponse);
     {
       if (serverResponse.type == "message_send_error") {
         lblError.textContent =
@@ -103,14 +110,13 @@ function setupWebSocket() {
         resetMessageForm();
         addMessageToTable(serverResponse.data.message);
       } else if (serverResponse.type === "new_message") {
-        console.log("server response", serverResponse);
-        console.log(serverResponse.message);
         addMessageToTable(serverResponse.message);
       } else if (serverResponse.type === "public_key") {
         const serverPublicKeyBuffer = Uint8Array.from(
           hexToBytes(serverResponse.data.key)
         );
         const importedServerKey = await importServerKey(serverPublicKeyBuffer);
+
         const sharedSecret = await getSecret(importedServerKey);
         aesKey = await generateAESKey(sharedSecret);
       }
@@ -215,11 +221,13 @@ function hexToBytes(hex) {
   }
   return bytes;
 }
+
 function generateIV() {
   const iv = new Uint8Array(16);
   window.crypto.getRandomValues(iv);
   return iv;
 }
+
 async function importServerKey(serverPublicKeyBuffer) {
   return await crypto.subtle.importKey(
     "raw",
@@ -239,12 +247,31 @@ async function getSecret(serverKey) {
     256
   );
 }
+
 async function generateAESKey(secret) {
-  return await crypto.subtle.importKey(
+  const cryptoKey = await crypto.subtle.importKey(
     "raw",
     new Uint8Array(secret),
     { name: "AES-CBC" },
-    false,
+    true,
     ["encrypt", "decrypt"]
   );
+
+  const rawKey = await crypto.subtle.exportKey("raw", cryptoKey);
+  return new Uint8Array(rawKey);
+}
+
+function arrayBufferToHex(buffer) {
+  const byteArray = new Uint8Array(buffer);
+  return Array.from(byteArray)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function arrayBufferToBase64(buffer) {
+  const byteArray = new Uint8Array(buffer);
+  const binaryString = Array.from(byteArray)
+    .map((byte) => String.fromCharCode(byte))
+    .join("");
+  return btoa(binaryString);
 }

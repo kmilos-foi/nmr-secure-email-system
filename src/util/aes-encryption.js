@@ -1,29 +1,33 @@
 const crypto = require("crypto");
-
+const aesJS = require("aes-js");
 exports.encrypt = function (aesKey, data, iv) {
-  const cipher = crypto.createCipheriv(
-    "aes-256-cbc",
-    Buffer.from(aesKey, "hex"),
-    iv
-  );
+  console.log("e-iv", iv);
+  console.log("e-key", aesKey);
+  console.log("e-data", data);
 
-  let encrypted = cipher.update(data, "utf8", "hex");
-  encrypted += cipher.final("hex");
+  const textBytes = aesJS.utils.utf8.toBytes(JSON.stringify(data));
+  const paddedBytes = aesJS.padding.pkcs7.pad(textBytes);
+  const aesCbc = new aesJS.ModeOfOperation.cbc(aesKey, iv);
+  const encryptedBytes = aesCbc.encrypt(paddedBytes);
+  const encryptedHex = aesJS.utils.hex.fromBytes(encryptedBytes);
 
-  return encrypted;
+  console.log("Encrypted data (hex):", encryptedHex);
+
+  return encryptedHex;
 };
 
 exports.decrypt = function (aesKey, encryptedData, iv) {
-  const decipher = crypto.createDecipheriv(
-    "aes-256-cbc",
-    Buffer.from(aesKey, "hex"),
-    iv
-  );
+  console.log("d-iv", iv);
+  console.log("d-key", aesKey);
+  console.log("d-data", encryptedData);
 
-  let decrypted = decipher.update(encryptedData, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-
-  return decrypted;
+  const encryptedBytes = aesJS.utils.hex.toBytes(encryptedData);
+  const aesCbc = new aesJS.ModeOfOperation.cbc(aesKey, iv);
+  const decryptedBytes = aesCbc.decrypt(encryptedBytes);
+  const unpaddedBytes = aesJS.padding.pkcs7.strip(decryptedBytes);
+  const decryptedText = aesJS.utils.utf8.fromBytes(unpaddedBytes);
+  console.log("Decrypted text:", JSON.parse(decryptedText));
+  return decryptedText;
 };
 
 exports.generateIV = function () {
@@ -31,9 +35,7 @@ exports.generateIV = function () {
 };
 
 exports.generateAESKey = function (sharedSecret) {
-  const hmac = crypto.createHmac("sha256", sharedSecret);
-  hmac.update("aes-key");
-  const aesKeyBuffer = hmac.digest();
-
-  return new Uint8Array(aesKeyBuffer.slice(0, 32));
+  const key = Buffer.alloc(32);
+  Buffer.from(sharedSecret).copy(key);
+  return key;
 };

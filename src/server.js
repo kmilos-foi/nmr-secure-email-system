@@ -110,24 +110,24 @@ function handleWebSocketConnections() {
         sendMessage(ws, "error", false, "unauthorized");
         return;
       }
+      //try {
       if (messageType === "public_key") {
-        try {
-          const ecdh = crypto.createECDH("prime256v1");
-          const serverPublicKey = ecdh.generateKeys("hex");
+        const ecdh = crypto.createECDH("prime256v1");
+        const serverPublicKey = ecdh.generateKeys("hex");
+        const clientPublicKeyBuffer = Buffer.from(messageData.key, "hex");
+        const sharedSecret = ecdh.computeSecret(clientPublicKeyBuffer);
+        const aesKey = aes.generateAESKey(sharedSecret);
 
-          const clientPublicKeyBuffer = Buffer.from(messageData.key, "hex");
-          const sharedSecret = ecdh.computeSecret(clientPublicKeyBuffer);
-          const aesKey = aes.generateAESKey(sharedSecret);
-          clients.set(userId, { ws, aesKey });
-          sendData(ws, "public_key", {
-            key: serverPublicKey,
-          });
-        } catch {
-          sendMessage(ws, "error", "something went wrong");
-        }
-      } else {
-        console.log(messageData);
-        const result = await messageService.postMessage(messageData, userId);
+        clients.set(userId, { ws, aesKey });
+        sendData(ws, "public_key", {
+          key: serverPublicKey,
+        });
+      } else if (messageType === "send_message") {
+        let iv = base64Decode(messageData.iv);
+        let content = JSON.parse(
+          aes.decrypt(clients.get(userId).aesKey, messageData.content, iv)
+        );
+        const result = await messageService.postMessage(content, userId);
         ws.send(
           JSON.stringify({
             type: result.type,
@@ -135,6 +135,10 @@ function handleWebSocketConnections() {
           })
         );
       }
+      /*} catch (ex) {
+        console.log(ex.message);
+        sendMessage(ws, "error", "something went wrong");
+      }*/
     });
 
     ws.on("close", () => {});
@@ -163,4 +167,15 @@ function sendData(ws, type, data) {
       data: data,
     })
   );
+}
+
+function base64Decode(base64) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
 }

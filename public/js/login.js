@@ -1,7 +1,5 @@
 let txtUsername = document.getElementById("txtUsername");
 let txtPassword = document.getElementById("txtPassword");
-txtPassword.value="user";
-txtUsername.value="user";
 let lblError = document.getElementById("lblError");
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -51,9 +49,9 @@ function handleLoginSuccess() {
 
 function handleLoginFailure(response) {
   let lblError = document.getElementById("lblError");
-    lblError.innerText = "Login failed!"
-    lblError.style.visibility = "visible";
-    resetInput();
+  lblError.innerText = "Login failed!";
+  lblError.style.visibility = "visible";
+  resetInput();
 }
 
 function resetInput() {

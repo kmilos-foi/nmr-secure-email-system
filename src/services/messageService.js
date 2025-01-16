@@ -68,14 +68,12 @@ exports.postMessage = async function (data, userId) {
   return { type: "message_ack", message: decryptedMessage };
 };
 
-exports.getMessages = async function (req, res) {
-  res.type("application/json");
+exports.getMessages = async function (userId) {
   let messageDao = new MessageDAO();
-  let userId = req.session.userId;
 
   let messages = await messageDao.getUserMessagesByUserId(userId);
 
   const decryptedMessages = messages.map((message) => decryptMessage(message));
 
-  res.status(200).json(decryptedMessages);
+  return decryptedMessages;
 };

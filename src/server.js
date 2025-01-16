@@ -9,7 +9,6 @@ require("dotenv-safe").config();
 const authenticationService = require("./services/authenticationService.js");
 const messageService = require("./services/messageService.js");
 const aes = require("./util/aes-encryption.js");
-const { type } = require("os");
 
 const port = process.env.PORT || 12000;
 
@@ -95,11 +94,10 @@ function serveHtml() {
 function serveServices() {
   server.post("/login", authenticationService.login);
   server.get("/logout", authenticationService.logout);
-  server.get("/messages", messageService.getMessages);
 }
 
 function handleWebSocketConnections() {
-  wss.on("connection", (ws, req) => {
+  wss.on("connection", async (ws, req) => {
     const userId = req.session.userId;
     clients.set(userId, ws);
     ws.on("message", async (message) => {
@@ -169,6 +167,22 @@ function handleWebSocketConnections() {
             })
           );
         }
+      } else if (messageType === "fetch_messages") {
+        let messages = await messageService.getMessages(userId);
+        let iv = aes.generateIV();
+        ws.send(
+          JSON.stringify({
+            type: "all_messages",
+            data: {
+              message: aes.encrypt(
+                clients.get(userId).aesKey,
+                JSON.stringify(messages),
+                iv
+              ),
+              iv: iv.toString("base64"),
+            },
+          })
+        );
       }
       /*} catch (ex) {
         console.log(ex.message);

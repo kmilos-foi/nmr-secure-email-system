@@ -13,8 +13,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setSendMessageButton();
   socket = new WebSocket("ws://localhost:12000");
   setupWebSocket();
-
-  await setMessagesTable();
 });
 
 function toggleCompose() {
@@ -94,7 +92,7 @@ function setupWebSocket() {
     await generateClientKeyPair();
     let rawKey = await crypto.subtle.exportKey("raw", clientKeyPair.publicKey);
     let key = bytesToHex(new Uint8Array(rawKey));
-    sendSocketMessage(key);
+    sendSocketMessage("public_key", { key: key });
   });
 
   socket.addEventListener("message", async (event) => {
@@ -105,10 +103,9 @@ function setupWebSocket() {
           serverResponse.data.message || "An error occurred.";
         lblError.style.visibility = "visible";
       } else if (serverResponse.type === "message_ack") {
-        lblError.style.display = "none";
+        lblError.style.visibility = "hidden";
         let iv = base64ToBytes(serverResponse.data.iv);
         const message = JSON.parse(decrypt(serverResponse.data.message, iv));
-        console.log(message);
         toggleCompose();
         resetMessageForm();
         addMessageToTable(message);
@@ -121,9 +118,15 @@ function setupWebSocket() {
           hexToBytes(serverResponse.data.key)
         );
         const importedServerKey = await importServerKey(serverPublicKeyBuffer);
-
         const sharedSecret = await getSecret(importedServerKey);
         aesKey = await generateAESKey(sharedSecret);
+        sendSocketMessage("fetch_messages", {});
+      } else if (serverResponse.type === "all_messages") {
+        let iv = base64ToBytes(serverResponse.data.iv);
+        let data = decrypt(serverResponse.data.message, iv);
+        data = JSON.parse(data);
+        let messages = JSON.parse(data);
+        setMessagesTable(messages);
       }
     }
   });
@@ -133,16 +136,15 @@ function setupWebSocket() {
   socket.addEventListener("close", () => {});
 }
 
-function sendSocketMessage(key) {
+function sendSocketMessage(type, data) {
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type: "public_key", data: { key: key } }));
+    socket.send(JSON.stringify({ type: type, data: data }));
   } else {
     alert("Something went wrong. Please try again.");
   }
 }
 
-async function setMessagesTable() {
-  let messages = await getMessages();
+function setMessagesTable(messages) {
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
@@ -196,12 +198,6 @@ function toggleMessageDetails(row, message) {
   detailsRow.appendChild(detailsCell);
 
   row.parentNode.insertBefore(detailsRow, row.nextSibling);
-}
-
-async function getMessages() {
-  let response = await fetch("/messages");
-  let data = await response.json();
-  return data;
 }
 
 function addMessageToTable(message) {

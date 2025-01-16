@@ -129,13 +129,14 @@ function handleWebSocketConnections() {
             aes.decrypt(clients.get(userId).aesKey, messageData.content, iv)
           );
           const result = await messageService.postMessage(content, userId);
-          if (result.type == "error") {
+          if (result.type == "message_send_error") {
             ws.send(
               JSON.stringify({
                 type: result.type,
                 data: { message: result.message },
               })
             );
+            return;
           } else {
             let iv = aes.generateIV();
             ws.send(

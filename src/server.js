@@ -128,12 +128,47 @@ function handleWebSocketConnections() {
           aes.decrypt(clients.get(userId).aesKey, messageData.content, iv)
         );
         const result = await messageService.postMessage(content, userId);
-        ws.send(
-          JSON.stringify({
-            type: result.type,
-            data: { message: result.message },
-          })
-        );
+        if (result.type == "error") {
+          ws.send(
+            JSON.stringify({
+              type: result.type,
+              data: { message: result.message },
+            })
+          );
+        } else {
+          let iv = aes.generateIV();
+          ws.send(
+            JSON.stringify({
+              type: result.type,
+              data: {
+                message: aes.encrypt(
+                  clients.get(userId).aesKey,
+                  result.message,
+                  iv
+                ),
+                iv: iv.toString("base64"),
+              },
+            })
+          );
+        }
+        if (result.message.receiver_id == req.session.userId) return;
+        const receiverWs = clients.get(result.message.receiver_id).ws;
+        if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+          let iv = aes.generateIV();
+          receiverWs.send(
+            JSON.stringify({
+              type: "new_message",
+              data: {
+                message: aes.encrypt(
+                  clients.get(result.message.receiver_id).aesKey,
+                  result.message,
+                  iv
+                ),
+                iv: iv.toString("base64"),
+              },
+            })
+          );
+        }
       }
       /*} catch (ex) {
         console.log(ex.message);

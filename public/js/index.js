@@ -106,11 +106,16 @@ function setupWebSocket() {
         lblError.style.visibility = "visible";
       } else if (serverResponse.type === "message_ack") {
         lblError.style.display = "none";
+        let iv = base64ToBytes(serverResponse.data.iv);
+        const message = JSON.parse(decrypt(serverResponse.data.message, iv));
+        console.log(message);
         toggleCompose();
         resetMessageForm();
-        addMessageToTable(serverResponse.data.message);
+        addMessageToTable(message);
       } else if (serverResponse.type === "new_message") {
-        addMessageToTable(serverResponse.message);
+        let iv = base64ToBytes(serverResponse.data.iv);
+        const message = JSON.parse(decrypt(serverResponse.data.message, iv));
+        addMessageToTable(message);
       } else if (serverResponse.type === "public_key") {
         const serverPublicKeyBuffer = Uint8Array.from(
           hexToBytes(serverResponse.data.key)
@@ -274,4 +279,21 @@ function arrayBufferToBase64(buffer) {
     .map((byte) => String.fromCharCode(byte))
     .join("");
   return btoa(binaryString);
+}
+function base64ToBytes(base64String) {
+  const binaryString = atob(base64String);
+  const byteArray = new Uint8Array(binaryString.length);
+
+  for (let i = 0; i < binaryString.length; i++) {
+    byteArray[i] = binaryString.charCodeAt(i);
+  }
+
+  return byteArray;
+}
+function decrypt(encryptedHex, iv) {
+  const aesCbcDecrypt = new aesjs.ModeOfOperation.cbc(aesKey, iv);
+  let encryptedBytes = aesjs.utils.hex.toBytes(encryptedHex);
+  const decryptedBytes = aesCbcDecrypt.decrypt(encryptedBytes);
+  const unpaddedBytes = aesjs.padding.pkcs7.strip(decryptedBytes);
+  return aesjs.utils.utf8.fromBytes(unpaddedBytes);
 }

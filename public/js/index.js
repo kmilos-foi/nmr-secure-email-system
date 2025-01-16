@@ -165,8 +165,37 @@ async function setMessagesTable() {
     row.appendChild(receiverCell);
     row.appendChild(subjectCell);
     row.appendChild(timestampCell);
+
+    row.addEventListener("click", () => toggleMessageDetails(row, message));
     tbody.appendChild(row);
   });
+}
+
+function toggleMessageDetails(row, message) {
+  if (
+    row.nextElementSibling &&
+    row.nextElementSibling.classList.contains("message-details")
+  ) {
+    row.nextElementSibling.remove();
+    return;
+  }
+  const detailsRow = document.createElement("tr");
+  detailsRow.classList.add("message-details");
+
+  const detailsCell = document.createElement("td");
+  detailsCell.colSpan = 4;
+  detailsCell.innerHTML = `
+    <div>
+      <strong>Sender:</strong> ${message.sender_username}<br>
+      <strong>Receiver:</strong> ${message.receiver_username}<br>
+      <strong>Subject:</strong> ${message.subject}<br>
+      <strong>Content:</strong> ${message.content}<br>
+    </div>
+  `;
+
+  detailsRow.appendChild(detailsCell);
+
+  row.parentNode.insertBefore(detailsRow, row.nextSibling);
 }
 
 async function getMessages() {
@@ -195,7 +224,7 @@ function addMessageToTable(message) {
   row.appendChild(receiverCell);
   row.appendChild(subjectCell);
   row.appendChild(timestampCell);
-
+  row.addEventListener("click", () => toggleMessageDetails(row, message));
   if (tbody.firstChild) {
     tbody.insertBefore(row, tbody.firstChild);
   } else {
